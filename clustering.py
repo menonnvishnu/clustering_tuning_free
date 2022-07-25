@@ -3,7 +3,6 @@ import numpy as np
 class clustering():
     
     def __init__(self,X,clustering = [],min_clusters = 3, max_clusters = 50):
-        self.config = config
         self.min_no = min_clusters
         self.max_no = max_clusters
         self.A = self.get_angles(X)
@@ -26,23 +25,37 @@ class clustering():
         return A
     
     def init_cluster(self):
-        indices_left = list(np.arange(self.num_data))
+        relationship_matrix = np.argsort(self.A,axis = 1)
         clusters = []
-        k = 0
         L = self.num_data
-        while L>=3:
-            if k in indices_left:
-                angles = self.A[k,:]
-                nbrs = np.argsort(angles)
-                nbrs = [n for n in nbrs if n in indices_left]
-                nbrs = np.asarray(nbrs)[0:2]
-                indices = np.append(nbrs,k)
+        points_list = -1*np.ones(L)
+        points_taken = []
+        count = 0
+        for i in range(L):
+            nbrs = relationship_matrix[i,0:2]
+            if i not in points_taken and nbrs[0] not in points_taken and  nbrs[1] not in points_taken:
+                indices = np.append(nbrs,i)
                 clusters.append(indices)
-                indices_left = [index for index in indices_left if index not in indices]
-                L-=3
-            k+=1
-        return clusters
-            
+                points_taken.extend(indices)
+                points_list[indices] = count
+                count+=1
+        
+        rem_points = np.where(points_list==-1)[0]
+        if len(rem_points)>0:
+            for i in rem_points:
+                nbrs = relationship_matrix[i,0:2]
+                if nbrs[0] in points_taken:
+                    cluster_index = int(points_list[nbrs[0]])
+                    indices = np.append(clusters[cluster_index],i)
+                    clusters[cluster_index] = indices
+                    points_list[i] = cluster_index
+                elif nbrs[1] in points_taken:
+                    cluster_index = int(points_list[nbrs[1]])
+                    indices = np.append(clusters[cluster_index],i)
+                    clusters[cluster_index] = indices
+                    points_list[i] = cluster_index
+        
+        return clusters          
          
     def estimate_mv(self,c1_indices,c2_indices):
         
